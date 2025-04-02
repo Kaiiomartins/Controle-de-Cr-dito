@@ -6,7 +6,7 @@ function App() {
     <div>
 
      <Home/>
-     <img src = '../Assets/creditos.jpg'></img>
+     <img src="../Assets/creditos.jpg" style={{ width: "95%", height: '500px'}} alt="Créditos" />
     </div>
   );
 }
