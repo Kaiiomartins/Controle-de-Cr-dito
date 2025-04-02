@@ -1,128 +1,107 @@
 import { useState, useEffect } from "react";
-import styles from '../Styles/Styles.Module.css'
- const Home = () => {
-  const [solicitacoes, setSolicitacoes] = useState([
-    { id: 1, nome: "Cliente 1", valor: "5000.00", status: "Aprovado" },
-    { id: 2, nome: "Cliente 2", valor: "3200.50", status: "Pendente" },
-  ]);
+import apiInstance from "../API/API.js";
+import styles from "../Styles/Styles.Module.css";
 
-  const [novoNome, setNovoNome] = useState("");
-  const [novoValor, setNovoValor] = useState("");
-  const [novoStatus, setNovoStatus] = useState("Pendente");
-  const [statusFilter, setStatusFilter] = useState(""); // Estado para o filtro
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1); // Ajuste conforme necessário
-
-  const adicionarSolicitacao = (e) => {
-    e.preventDefault(); // Evita recarregar a página
-
-    if (!novoNome || !novoValor) return alert("Preencha todos os campos!");
-
-    const novaSolicitacao = {
-      id: solicitacoes.length + 1,
-      nome: novoNome,
-      valor: novoValor,
-      status: novoStatus,
-    };
-
-    setSolicitacoes([...solicitacoes, novaSolicitacao]);
-
-    
-    setNovoNome("");
-    setNovoValor("");
-    setNovoStatus("Pendente");
-  };
+const Home = () => {
+  const [solicitacoes, setSolicitacoes] = useState([]);
+  const [nome, setNome] = useState("");
+  const [valor, setValor] = useState("");
+  const [email, setEmail] = useState("");
 
   
-  const solicitacoesFiltradas = statusFilter
-    ? solicitacoes.filter((req) => req.status === statusFilter)
-    : solicitacoes;
+  const fetchData = async () => {
+    try {
+      const response = await apiInstance.get("/");
+      console.log("Solicitações carregadas:", response.data);
+      setSolicitacoes(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar solicitações:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(); // Busca inicial
+  
+    const interval = setInterval(() => {
+      fetchData(); // Atualiza a cada 10 segundos
+    }, 10000);
+  
+    return () => clearInterval(interval); // Limpa o intervalo ao desmontar o componente
+  }, []);
+  
+  async function informacoes(e) {
+    e.preventDefault();
+
+    try {
+      const response = await apiInstance.get("/", {
+        params: {
+          NomeCliente: nome,
+          ValorSolicitado: valor,
+          Status: email,
+        },
+      });
+
+      console.log("Solicitação enviada:", response.data);
+
+      fetchData(); 
+
+      
+      setNome("");
+      setValor("");
+      setEmail("");
+    } catch (error) {
+      console.error("Erro ao enviar solicitação:", error);
+    }
+  }
 
   return (
     <div className="pageBackground">
-      <h1 className="text-2xl font-bold mb-4">Solicitações de Crédito</h1>
+      <form onSubmit={informacoes}>
+        <h1 className="text-2xl font-bold mb-4">Solicitações de Crédito</h1>
 
-      {/* Filtro de status */}
-      <div className="flex gap-4 mb-4">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="p-2 border rounded"
-          style={{ width: "100%" }}
-        >
-          <option value="">Todos</option>
-          <option value="Aprovado">Aprovado</option>
-          <option value="Rejeitado">Rejeitado</option>
-          <option value="Pendente">Pendente</option>
-        </select>
-      </div>
-
-      
-      <form onSubmit={adicionarSolicitacao} className="flex gap-4 mb-4">
         <input
+          value={nome}
           type="text"
-          placeholder="Nome"
-          value={novoNome}
-          onChange={(e) => setNovoNome(e.target.value)}
-          className="p-2 border rounded"
+          placeholder="Informe um nome:"
+          onChange={(e) => setNome(e.target.value)}
         />
+
         <input
+          value={valor}
           type="number"
-          placeholder="Valor"
-          value={novoValor}
-          onChange={(e) => setNovoValor(e.target.value)}
-          className="p-2 border rounded"
+          placeholder="Informe um valor:"
+          onChange={(e) => setValor(e.target.value)}
         />
-        <select
-          value={novoStatus}
-          onChange={(e) => setNovoStatus(e.target.value)}
-          className="p-2 border rounded"
-        >
-          <option value="Aprovado">Aprovado</option>
-          <option value="Rejeitado">Rejeitado</option>
-          <option value="Pendente">Pendente</option>
-        </select>
-        <button type="submit" className="p-2 bg-blue-500 text-white rounded">
-          Criar Solicitação
+
+        <input
+          value={email}
+          type="email"
+          placeholder="Informe um email:"
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+          Enviar Informações
         </button>
       </form>
 
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {solicitacoesFiltradas.map((req) => (
-          <div key={req.id} className="border p-4 rounded">
-            <h3 className="font-bold">{req.nome}</h3>
-            <p><strong>Valor:</strong> R$ {req.valor}</p>
-            <p><strong>Status:</strong> {req.status}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+        <ol>
+          {solicitacoes.map((req, index) => (
+            <li key={index} className="border p-4 rounded">
+              <h3 className="font-bold">{req.NomeCliente}</h3>
+              <p>
+                <strong>Valor:</strong> R$ {req.ValorSolicitado}
+              </p>
+              <p>
+                <strong>Status:</strong> {req.Status}
+              </p>
+            </li>
+          ))}
+        </ol>
       </div>
-
-      
-      <div className="flex justify-center mt-4">
-        <button
-          onClick={() => setCurrentPage(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="p-2 border rounded mr-2"
-        >
-          Anterior
-        </button>
-        <span className="p-2">{`Página ${currentPage} de ${totalPages}`}</span>
-        <button
-          onClick={() => setCurrentPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="p-2 border rounded ml-2"
-        >
-          Próxima
-        </button>
-      </div>
-
-    
     </div>
-    
   );
 };
 
-  
-  export default Home; 
-  
+export default Home;
